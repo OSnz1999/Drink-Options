@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Drinks Selector</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #020617;
+      color: #f9fafb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top, #1f2937 0, #020617 55%, #000 100%);
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+    }
+    .app {
+      width: 100%;
+      max-width: 520px;
+      padding: 1.3rem 1rem 1.6rem;
+    }
+    @media (min-width: 640px) {
+      .app { padding: 1.8rem 1.5rem 2rem; }
+    }
+    .card {
+      background: rgba(15,23,42,0.96);
+      border-radius: 1rem;
+      border: 1px solid rgba(55,65,81,0.9);
+      box-shadow: 0 18px 40px rgba(0,0,0,0.5);
+      padding: 1.2rem 1rem 1.5rem;
+    }
+    @media (min-width: 640px) {
+      .card { padding: 1.4rem 1.3rem 1.7rem; }
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.6rem;
+      letter-spacing: 0.03em;
+    }
+    .subtitle {
+      font-size: 0.86rem;
+      color: #9ca3af;
+      margin-top: 0.2rem;
+    }
+    .top-bar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .mode-toggle {
+      display: inline-flex;
+      border-radius: 999px;
+      border: 1px solid #4b5563;
+      padding: 0.15rem;
+      background: #020617;
+      height: fit-content;
+    }
+    .mode-toggle button {
+      border: none;
+      border-radius: 999px;
+      padding: 0.25rem 0.7rem;
+      font-size: 0.78rem;
+      cursor: pointer;
+      background: transparent;
+      color: #9ca3af;
+    }
+    .mode-toggle button.active {
+      background: #f97316;
+      color: #111827;
+      font-weight: 600;
+    }
+    .step-title {
+      font-weight: 600;
+      font-size: 0.98rem;
+      margin: 0.6rem 0 0.25rem;
+    }
+    .step-subtitle {
+      font-size: 0.8rem;
+      color: #9ca3af;
+      margin-bottom: 0.7rem;
+    }
+    .btn-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.6rem;
+    }
+    .big-btn {
+      border-radius: 0.8rem;
+      border: 1px solid #4b5563;
+      background: #020617;
+      color: inherit;
+      padding: 0.7rem 0.8rem;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.25rem;
+      font-size: 0.95rem;
+      transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.08s ease, background 0.12s ease;
+    }
+    .big-btn span.label {
+      font-weight: 600;
+    }
+    .big-btn span.caption {
+      font-size: 0.78rem;
+      color: #9ca3af;
+    }
+    .big-btn:active {
+      transform: translateY(1px) scale(0.99);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.7rem;
+    }
+    .card-option {
+      border-radius: 0.9rem;
+      border: 1px solid #374151;
+      background: #020617;
+      padding: 0.6rem 0.7rem;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.08s ease, background 0.12s ease;
+      text-align: left;
+    }
+    .card-option.selected {
+      border-color: #f97316;
+      box-shadow: 0 0 0 1px #f97316;
+      background: #0b1120;
+    }
+    .card-option-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .card-option-sub {
+      font-size: 0.78rem;
+      color: #9ca3af;
+    }
+    .image-preview {
+      width: 100%;
+      max-height: 150px;
+      border-radius: 0.7rem;
+      overflow: hidden;
+      background: #020617;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.25rem;
+    }
+    .image-preview img {
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+    }
+    .hint {
+      font-size: 0.76rem;
+      color: #6b7280;
+      margin-top: 0.3rem;
+    }
+    .nav-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 0.9rem;
+      gap: 0.5rem;
+    }
+    .nav-btn {
+      border-radius: 999px;
+      border: 1px solid #4b5563;
+      background: #020617;
+      color: #e5e7eb;
+      padding: 0.45rem 0.9rem;
+      font-size: 0.85rem;
+      cursor: pointer;
+      min-width: 80px;
+    }
+    .nav-btn.primary {
+      background: #f97316;
+      border-color: #f97316;
+      color: #111827;
+      font-weight: 600;
+    }
+    .nav-btn:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+    .summary-box {
+      margin-top: 0.8rem;
+      border-radius: 0.9rem;
+      border: 1px solid #4b5563;
+      background: #020617;
+      padding: 0.8rem 0.85rem;
+    }
+    .summary-label {
+      font-size: 0.82rem;
+      color: #9ca3af;
+      margin-bottom: 0.2rem;
+    }
+    .summary-main {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+    .summary-note {
+      font-size: 0.8rem;
+      color: #9ca3af;
+    }
+    .admin-section-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-top: 0.6rem;
+      margin-bottom: 0.25rem;
+    }
+    .admin-tabs {
+      display: flex;
+      gap: 0.4rem;
+      margin-top: 0.2rem;
+      margin-bottom: 0.4rem;
+      flex-wrap: wrap;
+    }
+    .admin-tab {
+      border-radius: 999px;
+      border: 1px solid #4b5563;
+      background: #020617;
+      color: #9ca3af;
+      font-size: 0.8rem;
+      padding: 0.25rem 0.7rem;
+      cursor: pointer;
+    }
+    .admin-tab.active {
+      background: #f97316;
+      border-color: #f97316;
+      color: #111827;
+      font-weight: 600;
+    }
+    .admin-list {
+      border-radius: 0.7rem;
+      border: 1px solid #374151;
+      background: #020617;
+      padding: 0.5rem;
+      max-height: 190px;
+      overflow: auto;
+      margin-bottom: 0.4rem;
+    }
+    .admin-item-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.82rem;
+      padding: 0.25rem 0.3rem;
+      border-radius: 0.5rem;
+    }
+    .admin-item-row:nth-child(odd) {
+      background: rgba(15,23,42,0.7);
+    }
+    .admin-item-label {
+      flex: 1;
+      margin-right: 0.4rem;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 0.05rem 0.45rem;
+      font-size: 0.65rem;
+      background: #111827;
+      color: #9ca3af;
+      margin-left: 0.15rem;
+    }
+    .admin-small-btn {
+      border-radius: 999px;
+      border: 1px solid #4b5563;
+      background: #020617;
+      color: #e5e7eb;
+      font-size: 0.7rem;
+      padding: 0.15rem 0.5rem;
+      cursor: pointer;
+      margin-left: 0.2rem;
+    }
+    .admin-form {
+      display: grid;
+      grid-template-columns: minmax(0,1fr);
+      gap: 0.35rem;
+      margin-top: 0.3rem;
+    }
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.12rem;
+      font-size: 0.8rem;
+    }
+    .field-group label {
+      color: #d1d5db;
+    }
+    .field-group input,
+    .field-group select {
+      border-radius: 0.6rem;
+      border: 1px solid #4b5563;
+      background: #020617;
+      color: #e5e7eb;
+      padding: 0.35rem 0.5rem;
+      font-size: 0.8rem;
+    }
+    .field-group input::placeholder {
+      color: #6b7280;
+    }
+    .mixer-checkboxes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem 0.6rem;
+      margin-top: 0.1rem;
+    }
+    .mixer-checkbox {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.18rem;
+      font-size: 0.78rem;
+    }
+    .mixer-checkbox input {
+      accent-color: #f97316;
+    }
+    .admin-save-btn {
+      margin-top: 0.3rem;
+      border-radius: 999px;
+      border: 1px solid #f97316;
+      background: #f97316;
+      color: #111827;
+      font-size: 0.85rem;
+      padding: 0.4rem 0.8rem;
+      cursor: pointer;
+      font-weight: 600;
+      width: 100%;
+    }
+    .admin-note {
+      font-size: 0.76rem;
+      color: #9ca3af;
+      margin-top: 0.25rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="card">
+      <div class="top-bar">
+        <div>
+          <h1>Drinks Selector</h1>
+          <div class="subtitle">
+            Guests choose drinks; you manage options in Admin. No code needed.
+          </div>
+        </div>
+        <div class="mode-toggle">
+          <button id="mode-guest" class="active" type="button">Guest</button>
+          <button id="mode-admin" type="button">Admin</button>
+        </div>
+      </div>
+
+      <div id="content"></div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "drinks-config-v3";
+
+    const DEFAULT_DATA = {
+      categories: [
+        { id: "bourbon", name: "Bourbon" },
+        { id: "whisky", name: "Whisky" },
+        { id: "gin", name: "Gin" },
+        { id: "vodka", name: "Vodka" },
+        { id: "beer", name: "Beer" },
+        { id: "wine", name: "Wine" }
+      ],
+      mixers: [
+        { id: "cola", name: "Cola" },
+        { id: "coke-zero", name: "Coke Zero" },
+        { id: "lemonade", name: "Lemonade" },
+        { id: "tonic", name: "Tonic" },
+        { id: "soda", name: "Soda water" },
+        { id: "ginger-ale", name: "Ginger ale" },
+        { id: "ginger-beer", name: "Ginger beer" },
+        { id: "oj", name: "Orange juice" },
+        { id: "sparkling", name: "Sparkling water" },
+        { id: "neat", name: "No mixer / neat" }
+      ],
+      drinks: [
+        {
+          id: "jd",
+          name: "Jack Daniel's",
+          categoryId: "bourbon",
+          image: "",
+          mixerIds: ["cola", "coke-zero", "ginger-ale", "soda", "neat"]
+        },
+        {
+          id: "bombay",
+          name: "Bombay Sapphire",
+          categoryId: "gin",
+          image: "",
+          mixerIds: ["tonic", "lemonade", "soda", "neat"]
+        }
+      ],
+      nonAlcoholicMixerIds: ["cola", "coke-zero", "lemonade", "ginger-beer", "oj", "sparkling"]
+    };
+
+    function loadData() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return structuredClone(DEFAULT_DATA);
+        const parsed = JSON.parse(raw);
+        return Object.assign(structuredClone(DEFAULT_DATA), parsed);
+      } catch (e) {
+        console.warn("Failed to load config, using defaults", e);
+        return structuredClone(DEFAULT_DATA);
+      }
+    }
+
+    function saveData() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      } catch (e) {
+        console.warn("Failed to save config", e);
+      }
+    }
+
+    let data = loadData();
+
+    const state = {
+      mode: "guest",
+      step: "type",
+      type: null,
+      categoryId: null,
+      drinkId: null,
+      mixerId: null,
+      adminTab: "drinks",
+      editingDrinkId: null
+    };
+
+    const contentEl = document.getElementById("content");
+    const modeGuestBtn = document.getElementById("mode-guest");
+    const modeAdminBtn = document.getElementById("mode-admin");
+
+    modeGuestBtn.addEventListener("click", () => setState({ mode: "guest" }));
+    modeAdminBtn.addEventListener("click", () => setState({ mode: "admin" }));
+
+    function setState(patch) {
+      Object.assign(state, patch);
+      if (patch.mode === "guest") {
+        state.step = "type";
+        state.type = null;
+        state.categoryId = null;
+        state.drinkId = null;
+        state.mixerId = null;
+      }
+      if (patch.mode === "admin") {
+        state.adminTab = state.adminTab || "drinks";
+        state.editingDrinkId = null;
+      }
+      render();
+    }
+
+    function resetGuestFlow() {
+      state.step = "type";
+      state.type = null;
+      state.categoryId = null;
+      state.drinkId = null;
+      state.mixerId = null;
+      render();
+    }
+
+    function clearContent() {
+      contentEl.innerHTML = "";
+    }
+
+    function el(tag, className, text) {
+      const e = document.createElement(tag);
+      if (className) e.className = className;
+      if (text != null) e.textContent = text;
+      return e;
+    }
+
+    function resolveImageSrc(imageValue) {
+      if (!imageValue) return null;
+      if (imageValue.startsWith("http://") || imageValue.startsWith("https://")) {
+        return imageValue;
+      }
+      return "images/" + imageValue;
+    }
+
+    function render() {
+      clearContent();
+      modeGuestBtn.classList.toggle("active", state.mode === "guest");
+      modeAdminBtn.classList.toggle("active", state.mode === "admin");
+      if (state.mode === "guest") renderGuest();
+      else renderAdmin();
+    }
+
+    function renderGuest() {
+      if (state.step === "type") renderStepType();
+      else if (state.step === "category") renderStepCategory();
+      else if (state.step === "drink") renderStepDrink();
+      else if (state.step === "mixer") renderStepMixer();
+      else if (state.step === "na-drink") renderStepNaDrink();
+      else if (state.step === "summary") renderStepSummary();
+    }
+
+    function renderStepType() {
+      const title = el("div", "step-title", "Step 1 — What would you like?");
+      const sub = el("div", "step-subtitle", "Choose alcoholic or non-alcoholic.");
+      const row = el("div", "btn-row", null);
+
+      const alcBtn = el("button", "big-btn", null);
+      alcBtn.type = "button";
+      alcBtn.innerHTML = "<span class='label'>Alcoholic</span><span class='caption'>Pick a spirit, beer or wine and a mixer.</span>";
+      alcBtn.onclick = () => {
+        state.type = "alcoholic";
+        state.step = "category";
+        state.categoryId = null;
+        state.drinkId = null;
+        state.mixerId = null;
+        render();
+      };
+
+      const naBtn = el("button", "big-btn", null);
+      naBtn.type = "button";
+      naBtn.innerHTML = "<span class='label'>Non-alcoholic</span><span class='caption'>Soft drinks, juices, non-alcoholic options.</span>";
+      naBtn.onclick = () => {
+        state.type = "non-alcoholic";
+        state.step = "na-drink";
+        state.categoryId = null;
+        state.drinkId = null;
+        state.mixerId = null;
+        render();
+      };
+
+      row.appendChild(alcBtn);
+      row.appendChild(naBtn);
+
+      contentEl.appendChild(title);
+      contentEl.appendChild(sub);
+      contentEl.appendChild(row);
+      contentEl.appendChild(el("div", "hint", "Tap one option to continue."));
+    }
+
+    function renderStepCategory() {
+      const title = el("div", "step-title", "Step 2 — Choose a category");
+      const sub = el("div", "step-subtitle", "Pick the type of drink first.");
+      const grid = el("div", "grid", null);
+      data.categories.forEach(cat => {
+        const btn = el("button", "card-option" + (state.categoryId === cat.id ? " selected" : ""), null);
+        btn.type = "button";
+        const t = el("div", "card-option-title", cat.name);
+        const s = el("div", "card-option-sub", "Tap to choose this category");
+        btn.appendChild(t);
+        btn.appendChild(s);
+        btn.onclick = () => {
+          state.categoryId = cat.id;
+          state.drinkId = null;
+          state.mixerId = null;
+          render();
+        };
+        grid.appendChild(btn);
+      });
+
+      contentEl.appendChild(title);
+      contentEl.appendChild(sub);
+      contentEl.appendChild(grid);
+
+      const nav = el("div", "nav-row", null);
+      const back = el("button", "nav-btn", "Back");
+      back.type = "button";
+      back.onclick = () => { state.step = "type"; render(); };
+      const next = el("button", "nav-btn primary", "Next");
+      next.type = "button";
+      next.disabled = !state.categoryId;
+      next.onclick = () => { state.step = "drink"; render(); };
+      nav.appendChild(back);
+      nav.appendChild(next);
+      contentEl.appendChild(nav);
+    }
+
+    function renderStepDrink() {
+      const title = el("div", "step-title", "Step 3 — Choose your drink");
+      const sub = el("div", "step-subtitle", "Pick a brand from this category.");
+      const grid = el("div", "grid", null);
+      const drinks = data.drinks.filter(d => d.categoryId === state.categoryId);
+
+      drinks.forEach(d => {
+        const btn = el("button", "card-option" + (state.drinkId === d.id ? " selected" : ""), null);
+        btn.type = "button";
+
+        const src = resolveImageSrc(d.image);
+        if (src) {
+          const imgWrap = el("div", "image-preview", null);
+          const img = document.createElement("img");
+          img.src = src;
+          img.alt = d.name;
+          imgWrap.appendChild(img);
+          btn.appendChild(imgWrap);
+        }
+
+        const t = el("div", "card-option-title", d.name);
+        btn.appendChild(t);
+
+        btn.onclick = () => {
+          state.drinkId = d.id;
+          state.mixerId = null;
+          render();
+        };
+        grid.appendChild(btn);
+      });
+
+      contentEl.appendChild(title);
+      contentEl.appendChild(sub);
+      if (drinks.length === 0) {
+        contentEl.appendChild(el("div", "hint", "No drinks set up for this category yet. Add some in Admin mode."));
+      }
+      contentEl.appendChild(grid);
+
+      const nav = el("div", "nav-row", null);
+      const back = el("button", "nav-btn", "Back");
+      back.type = "button";
+      back.onclick = () => { state.step = "category"; render(); };
+      const next = el("button", "nav-btn primary", "Next");
+      next.type = "button";
+      next.disabled = !state.drinkId;
+      next.onclick = () => { state.step = "mixer"; render(); };
+      nav.appendChild(back);
+      nav.appendChild(next);
+      contentEl.appendChild(nav);
+    }
+
+    function renderStepMixer() {
+      const drink = data.drinks.find(d => d.id === state.drinkId);
+      const title = el("div", "step-title", "Step 4 — Choose your mixer");
+      const sub = el("div", "step-subtitle", drink ? ("What would you like with " + drink.name + "?") : "Choose a mixer.");
+      const grid = el("div", "grid", null);
+
+      let mixerList = data.mixers;
+      if (drink && drink.mixerIds && drink.mixerIds.length > 0) {
+        mixerList = data.mixers.filter(m => drink.mixerIds.includes(m.id));
+      }
+
+      mixerList.forEach(m => {
+        const btn = el("button", "card-option" + (state.mixerId === m.id ? " selected" : ""), null);
+        btn.type = "button";
+        const t = el("div", "card-option-title", m.name);
+        btn.appendChild(t);
+        btn.onclick = () => {
+          state.mixerId = m.id;
+          render();
+        };
+        grid.appendChild(btn);
+      });
+
+      contentEl.appendChild(title);
+      contentEl.appendChild(sub);
+      contentEl.appendChild(grid);
+
+      const nav = el("div", "nav-row", null);
+      const back = el("button", "nav-btn", "Back");
+      back.type = "button";
+      back.onclick = () => { state.step = "drink"; render(); };
+      const next = el("button", "nav-btn primary", "See selection");
+      next.type = "button";
+      next.disabled = !state.mixerId;
+      next.onclick = () => { state.step = "summary"; render(); };
+      nav.appendChild(back);
+      nav.appendChild(next);
+      contentEl.appendChild(nav);
+    }
+
+    function renderStepNaDrink() {
+      const title = el("div", "step-title", "Step 2 — Choose your drink");
+      const sub = el("div", "step-subtitle", "Non-alcoholic options.");
+      const grid = el("div", "grid", null);
+
+      const naMixers = data.mixers.filter(m => data.nonAlcoholicMixerIds.includes(m.id));
+      naMixers.forEach(m => {
+        const btn = el("button", "card-option" + (state.mixerId === m.id ? " selected" : ""), null);
+        btn.type = "button";
+        const t = el("div", "card-option-title", m.name);
+        btn.appendChild(t);
+        btn.onclick = () => {
+          state.mixerId = m.id;
+          render();
+        };
+        grid.appendChild(btn);
+      });
+
+      contentEl.appendChild(title);
+      contentEl.appendChild(sub);
+      contentEl.appendChild(grid);
+
+      const nav = el("div", "nav-row", null);
+      const back = el("button", "nav-btn", "Back");
+      back.type = "button";
+      back.onclick = () => { state.step = "type"; render(); };
+      const next = el("button", "nav-btn primary", "See selection");
+      next.type = "button";
+      next.disabled = !state.mixerId;
+      next.onclick = () => { state.step = "summary"; render(); };
+      nav.appendChild(back);
+      nav.appendChild(next);
+      contentEl.appendChild(nav);
+    }
+
+    function renderStepSummary() {
+      const box = el("div", "summary-box", null);
+      box.appendChild(el("div", "summary-label", "Your selection"));
+
+      let mainText = "";
+      if (state.type === "alcoholic") {
+        const drink = data.drinks.find(d => d.id === state.drinkId);
+        const mixer = data.mixers.find(m => m.id === state.mixerId);
+        mainText = (drink ? drink.name : "Drink") + " with " + (mixer ? mixer.name : "your mixer");
+      } else {
+        const mixer = data.mixers.find(m => m.id === state.mixerId);
+        mainText = mixer ? mixer.name : "Non-alcoholic drink";
+      }
+      box.appendChild(el("div", "summary-main", mainText));
+      box.appendChild(el("div", "summary-note", "Please show this screen at the bar when you order."));
+      contentEl.appendChild(box);
+
+      const nav = el("div", "nav-row", null);
+      const back = el("button", "nav-btn", "Back");
+      back.type = "button";
+      back.onclick = () => {
+        if (state.type === "alcoholic") state.step = "mixer";
+        else state.step = "na-drink";
+        render();
+      };
+      const reset = el("button", "nav-btn primary", "Start again");
+      reset.type = "button";
+      reset.onclick = resetGuestFlow;
+      nav.appendChild(back);
+      nav.appendChild(reset);
+      contentEl.appendChild(nav);
+    }
+
+    function renderAdmin() {
+      const title = el("div", "step-title", "Admin — Manage options");
+      const sub = el("div", "step-subtitle",
+        "Use this on your own phone or laptop. Add categories, mixers and drinks here. Photos are loaded from the images folder in GitHub."
+      );
+      contentEl.appendChild(title);
+      contentEl.appendChild(sub);
+
+      const tabs = el("div", "admin-tabs", null);
+      [["drinks","Drinks"],["categories","Categories"],["mixers","Mixers"]].forEach(([id,label]) => {
+        const btn = el("button", "admin-tab" + (state.adminTab === id ? " active" : ""), label);
+        btn.type = "button";
+        btn.onclick = () => { state.adminTab = id; state.editingDrinkId = null; render(); };
+        tabs.appendChild(btn);
+      });
+      contentEl.appendChild(tabs);
+
+      if (state.adminTab === "categories") renderAdminCategories();
+      else if (state.adminTab === "mixers") renderAdminMixers();
+      else renderAdminDrinks();
+    }
+
+    function renderAdminCategories() {
+      const title = el("div", "admin-section-title", "Categories");
+      contentEl.appendChild(title);
+
+      const list = el("div", "admin-list", null);
+      data.categories.forEach(cat => {
+        const row = el("div", "admin-item-row", null);
+        const label = el("div", "admin-item-label", cat.name);
+        row.appendChild(label);
+        const delBtn = el("button", "admin-small-btn", "Delete");
+        delBtn.type = "button";
+        delBtn.onclick = () => {
+          if (!confirm(`Delete category "${cat.name}"? Drinks using it will no longer appear.`)) return;
+          data.categories = data.categories.filter(c => c.id !== cat.id);
+          saveData();
+          render();
+        };
+        row.appendChild(delBtn);
+        list.appendChild(row);
+      });
+      contentEl.appendChild(list);
+
+      const form = el("div", "admin-form", null);
+      const nameGroup = el("div", "field-group", null);
+      const nameLabel = el("label", null, "Add new category");
+      const nameInput = el("input", null, null);
+      nameInput.type = "text";
+      nameInput.placeholder = "e.g. Rum, RTD, Cider";
+      nameGroup.appendChild(nameLabel);
+      nameGroup.appendChild(nameInput);
+      form.appendChild(nameGroup);
+      contentEl.appendChild(form);
+
+      const saveBtn = el("button", "admin-save-btn", "Add category");
+      saveBtn.type = "button";
+      saveBtn.onclick = () => {
+        const name = nameInput.value.trim();
+        if (!name) return;
+        const id = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+        if (!id) return;
+        if (data.categories.some(c => c.id === id)) {
+          alert("That category already exists.");
+          return;
+        }
+        data.categories.push({ id, name });
+        saveData();
+        nameInput.value = "";
+        render();
+      };
+      contentEl.appendChild(saveBtn);
+
+      contentEl.appendChild(el("div", "admin-note", "Guests choose a category first (Gin, Bourbon, Beer, Wine, etc.)."));
+    }
+
+    function renderAdminMixers() {
+      const title = el("div", "admin-section-title", "Mixers & non-alcoholic drinks");
+      contentEl.appendChild(title);
+
+      const list = el("div", "admin-list", null);
+      data.mixers.forEach(m => {
+        const row = el("div", "admin-item-row", null);
+        const label = el("div", "admin-item-label", m.name);
+        row.appendChild(label);
+        const delBtn = el("button", "admin-small-btn", "Delete");
+        delBtn.type = "button";
+        delBtn.onclick = () => {
+          if (!confirm(`Delete mixer "${m.name}"?`)) return;
+          data.mixers = data.mixers.filter(x => x.id !== m.id);
+          data.drinks.forEach(d => {
+            d.mixerIds = (d.mixerIds || []).filter(id => id !== m.id);
+          });
+          data.nonAlcoholicMixerIds = data.nonAlcoholicMixerIds.filter(id => id !== m.id);
+          saveData();
+          render();
+        };
+        row.appendChild(delBtn);
+        list.appendChild(row);
+      });
+      contentEl.appendChild(list);
+
+      const form = el("div", "admin-form", null);
+      const nameGroup = el("div", "field-group", null);
+      const nameLabel = el("label", null, "Add new mixer / soft drink");
+      const nameInput = el("input", null, null);
+      nameInput.type = "text";
+      nameInput.placeholder = "e.g. Raspberry lemonade, Soda, Tonic";
+      nameGroup.appendChild(nameLabel);
+      nameGroup.appendChild(nameInput);
+      form.appendChild(nameGroup);
+      contentEl.appendChild(form);
+
+      const saveBtn = el("button", "admin-save-btn", "Add mixer");
+      saveBtn.type = "button";
+      saveBtn.onclick = () => {
+        const name = nameInput.value.trim();
+        if (!name) return;
+        const id = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+        if (!id) return;
+        if (data.mixers.some(m => m.id === id)) {
+          alert("That mixer already exists.");
+          return;
+        }
+        data.mixers.push({ id, name });
+        saveData();
+        nameInput.value = "";
+        render();
+      };
+      contentEl.appendChild(saveBtn);
+
+      contentEl.appendChild(el("div", "admin-note", "Tick which mixers appear when guests choose “Non-alcoholic”."));
+
+      const naWrapper = el("div", "mixer-checkboxes", null);
+      data.mixers.forEach(m => {
+        const wrap = el("label", "mixer-checkbox", null);
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = data.nonAlcoholicMixerIds.includes(m.id);
+        cb.onchange = () => {
+          if (cb.checked) {
+            if (!data.nonAlcoholicMixerIds.includes(m.id)) data.nonAlcoholicMixerIds.push(m.id);
+          } else {
+            data.nonAlcoholicMixerIds = data.nonAlcoholicMixerIds.filter(id => id !== m.id);
+          }
+          saveData();
+        };
+        const span = document.createElement("span");
+        span.textContent = m.name;
+        wrap.appendChild(cb);
+        wrap.appendChild(span);
+        naWrapper.appendChild(wrap);
+      });
+      contentEl.appendChild(naWrapper);
+    }
+
+    function renderAdminDrinks() {
+      const title = el("div", "admin-section-title", "Drinks");
+      contentEl.appendChild(title);
+
+      const list = el("div", "admin-list", null);
+      if (data.drinks.length === 0) {
+        list.appendChild(el("div", "hint", "No drinks yet. Add one below."));
+      } else {
+        data.drinks.forEach(d => {
+          const row = el("div", "admin-item-row", null);
+          const label = el("div", "admin-item-label", null);
+          const cat = data.categories.find(c => c.id === d.categoryId);
+          label.textContent = d.name + (cat ? " (" + cat.name + ")" : "");
+          if (d.image) {
+            const b = el("span", "badge", "image: " + d.image);
+            label.appendChild(b);
+          }
+          row.appendChild(label);
+          const editBtn = el("button", "admin-small-btn", "Edit");
+          editBtn.type = "button";
+          editBtn.onclick = () => { state.editingDrinkId = d.id; render(); };
+          const delBtn = el("button", "admin-small-btn", "Delete");
+          delBtn.type = "button";
+          delBtn.onclick = () => {
+            if (!confirm(`Delete drink "${d.name}"?`)) return;
+            data.drinks = data.drinks.filter(x => x.id !== d.id);
+            saveData();
+            if (state.drinkId === d.id) state.drinkId = null;
+            render();
+          };
+          row.appendChild(editBtn);
+          row.appendChild(delBtn);
+          list.appendChild(row);
+        });
+      }
+      contentEl.appendChild(list);
+
+      const formTitle = el("div", "admin-section-title", state.editingDrinkId ? "Edit drink" : "Add new drink");
+      contentEl.appendChild(formTitle);
+
+      const editingDrink = state.editingDrinkId ? data.drinks.find(d => d.id === state.editingDrinkId) : null;
+
+      const form = el("div", "admin-form", null);
+
+      const nameGroup = el("div", "field-group", null);
+      const nameLabel = el("label", null, "Drink name");
+      const nameInput = el("input", null, null);
+      nameInput.type = "text";
+      nameInput.placeholder = "e.g. Bombay Sapphire, House Lager";
+      nameInput.value = editingDrink ? editingDrink.name : "";
+      nameGroup.appendChild(nameLabel);
+      nameGroup.appendChild(nameInput);
+      form.appendChild(nameGroup);
+
+      const catGroup = el("div", "field-group", null);
+      const catLabel = el("label", null, "Category");
+      const catSelect = document.createElement("select");
+      data.categories.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c.id;
+        opt.textContent = c.name;
+        catSelect.appendChild(opt);
+      });
+      catSelect.value = editingDrink ? editingDrink.categoryId : (data.categories[0] && data.categories[0].id);
+      catGroup.appendChild(catLabel);
+      catGroup.appendChild(catSelect);
+      form.appendChild(catGroup);
+
+      const imgGroup = el("div", "field-group", null);
+      const imgLabel = el("label", null, "Image filename (optional)");
+      const imgInput = el("input", null, null);
+      imgInput.type = "text";
+      imgInput.placeholder = "e.g. bombay-sapphire.jpg";
+      imgInput.value = editingDrink ? (editingDrink.image || "") : "";
+      imgGroup.appendChild(imgLabel);
+      imgGroup.appendChild(imgInput);
+      const imgHint = el("div", "hint",
+        "Upload photos into the images folder in GitHub, then type the file name here. The app will use /images/<file>."
+      );
+      imgGroup.appendChild(imgHint);
+
+      // live preview
+      const previewWrap = el("div", "image-preview", null);
+      const previewImg = document.createElement("img");
+      previewImg.style.display = "none";
+      previewWrap.appendChild(previewImg);
+      imgGroup.appendChild(previewWrap);
+
+      function refreshPreview() {
+        const val = imgInput.value.trim();
+        if (!val) {
+          previewImg.style.display = "none";
+          previewImg.src = "";
+          return;
+        }
+        previewImg.src = resolveImageSrc(val);
+        previewImg.style.display = "block";
+      }
+      imgInput.addEventListener("input", refreshPreview);
+      if (imgInput.value) refreshPreview();
+
+      form.appendChild(imgGroup);
+
+      const mixersGroup = el("div", "field-group", null);
+      const mixersLabel = el("label", null, "Which mixers suit this drink?");
+      mixersGroup.appendChild(mixersLabel);
+      const mixersWrap = el("div", "mixer-checkboxes", null);
+      const currentMixerIds = editingDrink ? (editingDrink.mixerIds || []) : data.mixers.map(m => m.id);
+      data.mixers.forEach(m => {
+        const wrap = el("label", "mixer-checkbox", null);
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.value = m.id;
+        cb.checked = currentMixerIds.includes(m.id);
+        const span = document.createElement("span");
+        span.textContent = m.name;
+        wrap.appendChild(cb);
+        wrap.appendChild(span);
+        mixersWrap.appendChild(wrap);
+      });
+      mixersGroup.appendChild(mixersWrap);
+      form.appendChild(mixersGroup);
+
+      contentEl.appendChild(form);
+
+      const saveBtn = el("button", "admin-save-btn", editingDrink ? "Save changes" : "Add drink");
+      saveBtn.type = "button";
+      saveBtn.onclick = () => {
+        const name = nameInput.value.trim();
+        if (!name) {
+          alert("Please enter a drink name.");
+          return;
+        }
+        const categoryId = catSelect.value;
+        const image = imgInput.value.trim();
+        const selectedMixerIds = [];
+        mixersWrap.querySelectorAll("input[type=checkbox]").forEach(cb => {
+          if (cb.checked) selectedMixerIds.push(cb.value);
+        });
+        if (selectedMixerIds.length === 0) {
+          alert("Please select at least one mixer.");
+          return;
+        }
+        if (editingDrink) {
+          editingDrink.name = name;
+          editingDrink.categoryId = categoryId;
+          editingDrink.image = image;
+          editingDrink.mixerIds = selectedMixerIds;
+        } else {
+          let idBase = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+          if (!idBase) idBase = "drink";
+          let id = idBase;
+          let counter = 1;
+          while (data.drinks.some(d => d.id === id)) {
+            counter++;
+            id = idBase + "-" + counter;
+          }
+          data.drinks.push({
+            id,
+            name,
+            categoryId,
+            image,
+            mixerIds: selectedMixerIds
+          });
+        }
+        saveData();
+        state.editingDrinkId = null;
+        render();
+      };
+      contentEl.appendChild(saveBtn);
+
+      contentEl.appendChild(el("div", "admin-note",
+        "After saving, switch back to Guest mode to see exactly what your guests will see."
+      ));
+    }
+
+    render();
+  </script>
+</body>
+</html>
