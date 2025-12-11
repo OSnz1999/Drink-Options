@@ -162,10 +162,10 @@ export default function HomePage() {
     (m) => m.id === selectedMixerId,
   )
 
-  const alcoholicMixersForDrink: Mixer[] =
-    selectedDrink?.mixerIds
-      .map((id) => mixers.find((m) => m.id === id))
-      .filter(Boolean) ?? []
+ const alcoholicMixersForDrink: Mixer[] =
+  (selectedDrink?.mixerIds
+    .map((id) => mixers.find((m) => m.id === id))
+    .filter((m): m is Mixer => Boolean(m)) ?? []);
 
   const nonAlcoholicOptions = mixers.filter((m) => m.isNonAlcoholicOption)
 
