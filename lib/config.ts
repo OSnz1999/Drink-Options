@@ -47,21 +47,23 @@ const DEFAULT_CONFIG: Config = {
 export async function getConfig(): Promise<Config> {
   try {
     const { blobs } = await list({ prefix: CONFIG_KEY })
+
     if (!blobs.length) {
-      // If no config yet, create one with defaults
+      // Create default config safely (overwrite allowed)
       await put(CONFIG_KEY, JSON.stringify(DEFAULT_CONFIG, null, 2), {
         access: 'public',
-        addRandomSuffix: false,
         contentType: 'application/json',
+        addRandomSuffix: false,
+        allowOverwrite: true, // ✅ critical
       })
       return DEFAULT_CONFIG
     }
 
     const blob = blobs[0]
-    const res = await fetch(blob.url)
+    const res = await fetch(blob.url, { cache: 'no-store' })
     if (!res.ok) throw new Error('Failed to fetch config blob')
-    const json = (await res.json()) as Config
-    return json
+
+    return (await res.json()) as Config
   } catch (err) {
     console.error('Error loading config, using defaults:', err)
     return DEFAULT_CONFIG
@@ -71,7 +73,8 @@ export async function getConfig(): Promise<Config> {
 export async function saveConfig(config: Config): Promise<void> {
   await put(CONFIG_KEY, JSON.stringify(config, null, 2), {
     access: 'public',
-    addRandomSuffix: false,
     contentType: 'application/json',
+    addRandomSuffix: false,
+    allowOverwrite: true, // ✅ THIS FIXES YOUR ERROR
   })
 }
