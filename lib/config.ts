@@ -38,9 +38,17 @@ async function readLocalConfig(): Promise<Config | null> {
 }
 
 function normalizeConfig(input: Config): Config {
+  const rawEvents = Array.isArray((input as Config).events) ? (input as Config).events : []
+
   return {
     ...input,
-    events: Array.isArray((input as Config).events) ? (input as Config).events : [],
+    events: rawEvents.map((ev) => ({
+      ...ev,
+      drinkIds: Array.isArray((ev as any).drinkIds) ? (ev as any).drinkIds : [],
+      nonAlcoholicMixerIds: Array.isArray((ev as any).nonAlcoholicMixerIds)
+        ? (ev as any).nonAlcoholicMixerIds
+        : [],
+    })),
     bookings: Array.isArray((input as Config).bookings)
       ? (input as Config).bookings
       : [],

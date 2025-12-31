@@ -23,6 +23,7 @@ export type Event = {
   id: string
   name: string
   drinkIds: string[]
+  nonAlcoholicMixerIds: string[]
 }
 
 export type Booking = {

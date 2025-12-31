@@ -202,6 +202,11 @@ export default function HomePage() {
     .filter((m): m is Mixer => Boolean(m)) ?? []);
 
   const nonAlcoholicOptions = mixers.filter((m) => m.isNonAlcoholicOption)
+  const nonAlcoholicOptionsForEvent = selectedEvent
+    ? nonAlcoholicOptions.filter((m) =>
+        selectedEvent.nonAlcoholicMixerIds.includes(m.id),
+      )
+    : []
 
   function handleGuestBack() {
     switch (guestView) {
@@ -613,7 +618,7 @@ export default function HomePage() {
             drinks={drinksForEvent}
             mixers={mixers}
             alcoholicMixersForDrink={alcoholicMixersForDrink}
-            nonAlcoholicOptions={nonAlcoholicOptions}
+            nonAlcoholicOptions={nonAlcoholicOptionsForEvent}
             onBack={handleGuestBack}
             onStartAgain={resetGuestFlow}
             summaryText={summaryText()}
@@ -631,6 +636,7 @@ export default function HomePage() {
             setAdminTab={setAdminTab}
             config={config}
             handleClearAllData={handleClearAllData}
+            saveConfigToServer={saveConfigToServer}
             // events
             newEventName={newEventName}
             setNewEventName={setNewEventName}
@@ -1121,6 +1127,7 @@ type AdminAreaProps = {
   setAdminTab: (t: 'categories' | 'mixers' | 'drinks' | 'events' | 'portal') => void
   config: Config
   handleClearAllData: () => void
+  saveConfigToServer: (nextConfig: Config) => Promise<void> | void
   // events
   newEventName: string
   setNewEventName: (v: string) => void
@@ -1171,6 +1178,7 @@ function AdminArea(props: AdminAreaProps) {
     setAdminTab,
     config,
     handleClearAllData,
+    saveConfigToServer,
     newEventName,
     setNewEventName,
     portalEventId,
@@ -1209,6 +1217,8 @@ function AdminArea(props: AdminAreaProps) {
   const events = config.events ?? []
   const bookings = config.bookings ?? []
 
+  const nonAlcoholicMixers = mixers.filter((m) => m.isNonAlcoholicOption)
+
   function handleAddEvent(e: React.FormEvent) {
     e.preventDefault()
     const name = newEventName.trim()
@@ -1219,15 +1229,11 @@ function AdminArea(props: AdminAreaProps) {
     )
     const nextConfig: Config = {
       ...config,
-      events: [...events, { id, name, drinkIds: [] }],
+      events: [...events, { id, name, drinkIds: [], nonAlcoholicMixerIds: [] }],
     }
     setNewEventName('')
     setPortalEventId(id)
-    void fetch('/api/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(nextConfig),
-    })
+    void saveConfigToServer(nextConfig)
   }
 
   function handleDeleteEvent(ev: Event) {
@@ -1241,11 +1247,7 @@ function AdminArea(props: AdminAreaProps) {
       bookings: bookings.filter((b) => b.eventId !== ev.id),
     }
     if (portalEventId === ev.id) setPortalEventId(null)
-    void fetch('/api/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(nextConfig),
-    })
+    void saveConfigToServer(nextConfig)
   }
 
   function handleToggleEventDrinkId(eventId: string, drinkId: string) {
@@ -1262,11 +1264,25 @@ function AdminArea(props: AdminAreaProps) {
         }
       }),
     }
-    void fetch('/api/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(nextConfig),
-    })
+    void saveConfigToServer(nextConfig)
+  }
+
+  function handleToggleEventNonAlcoholicMixerId(eventId: string, mixerId: string) {
+    const nextConfig: Config = {
+      ...config,
+      events: events.map((ev) => {
+        if (ev.id !== eventId) return ev
+        const list = ev.nonAlcoholicMixerIds ?? []
+        const has = list.includes(mixerId)
+        return {
+          ...ev,
+          nonAlcoholicMixerIds: has
+            ? list.filter((id) => id !== mixerId)
+            : [...list, mixerId],
+        }
+      }),
+    }
+    void saveConfigToServer(nextConfig)
   }
 
   function handleDeleteBooking(booking: Booking) {
@@ -1274,11 +1290,7 @@ function AdminArea(props: AdminAreaProps) {
       ...config,
       bookings: bookings.filter((b) => b.id !== booking.id),
     }
-    void fetch('/api/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(nextConfig),
-    })
+    void saveConfigToServer(nextConfig)
   }
 
   if (!isAdminAuthed) {
@@ -1444,26 +1456,73 @@ function AdminArea(props: AdminAreaProps) {
                     <p className="mb-2 text-xs font-medium text-slate-300">
                       Drinks for this event
                     </p>
+                    <div className="max-h-56 overflow-y-auto rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2">
+                      {categories.map((cat) => {
+                        const drinksInCat = drinks.filter((d) => d.categoryId === cat.id)
+                        if (!drinksInCat.length) return null
+                        return (
+                          <div key={cat.id} className="mb-3">
+                            <p className="mb-1 text-[0.7rem] font-semibold uppercase tracking-wide text-slate-400">
+                              {cat.name}
+                            </p>
+                            <div className="grid grid-cols-2 gap-2">
+                              {drinksInCat.map((drink) => (
+                                <label
+                                  key={drink.id}
+                                  className="flex items-center gap-2 text-[0.75rem] text-slate-200"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={ev.drinkIds.includes(drink.id)}
+                                    onChange={() =>
+                                      handleToggleEventDrinkId(ev.id, drink.id)
+                                    }
+                                    className="h-3 w-3 rounded border-slate-600 bg-slate-900 text-emerald-400"
+                                  />
+                                  <span>{drink.name}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      })}
+                      {!drinks.length && (
+                        <p className="text-xs text-slate-500">
+                          Add drinks first, then assign them to events.
+                        </p>
+                      )}
+                      {drinks.length > 0 && categories.length === 0 && (
+                        <p className="text-xs text-slate-500">
+                          Add at least one category so drinks can be grouped.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-3">
+                    <p className="mb-2 text-xs font-medium text-slate-300">
+                      Non-alcoholic options for this event
+                    </p>
                     <div className="grid max-h-40 grid-cols-2 gap-2 overflow-y-auto rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2">
-                      {drinks.map((drink) => (
+                      {nonAlcoholicMixers.map((m) => (
                         <label
-                          key={drink.id}
+                          key={m.id}
                           className="flex items-center gap-2 text-[0.75rem] text-slate-200"
                         >
                           <input
                             type="checkbox"
-                            checked={ev.drinkIds.includes(drink.id)}
+                            checked={(ev.nonAlcoholicMixerIds ?? []).includes(m.id)}
                             onChange={() =>
-                              handleToggleEventDrinkId(ev.id, drink.id)
+                              handleToggleEventNonAlcoholicMixerId(ev.id, m.id)
                             }
                             className="h-3 w-3 rounded border-slate-600 bg-slate-900 text-emerald-400"
                           />
-                          <span>{drink.name}</span>
+                          <span>{m.name}</span>
                         </label>
                       ))}
-                      {!drinks.length && (
+                      {!nonAlcoholicMixers.length && (
                         <p className="col-span-2 text-xs text-slate-500">
-                          Add drinks first, then assign them to events.
+                          Add mixers and mark them as non-alcoholic options first.
                         </p>
                       )}
                     </div>

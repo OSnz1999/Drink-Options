@@ -29,7 +29,15 @@ export async function POST(req: Request) {
 
     const normalized: Config = {
       ...body,
-      events: Array.isArray(body.events) ? body.events : [],
+      events: Array.isArray(body.events)
+        ? body.events.map((ev) => ({
+            ...ev,
+            drinkIds: Array.isArray((ev as any).drinkIds) ? (ev as any).drinkIds : [],
+            nonAlcoholicMixerIds: Array.isArray((ev as any).nonAlcoholicMixerIds)
+              ? (ev as any).nonAlcoholicMixerIds
+              : [],
+          }))
+        : [],
       bookings: Array.isArray(body.bookings) ? body.bookings : [],
     }
 
