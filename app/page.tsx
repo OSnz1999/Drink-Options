@@ -2,10 +2,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import type { Category, Mixer, Drink, Config } from '@/lib/types'
+import type { Category, Mixer, Drink, Config, Event, Booking } from '@/lib/types'
 
 type Mode = 'guest' | 'admin'
 type GuestView =
+  | 'event'
   | 'type'
   | 'alcoholic-category'
   | 'alcoholic-drink'
@@ -41,7 +42,8 @@ export default function HomePage() {
   const [pinInput, setPinInput] = useState('')
 
   // Guest wizard state
-  const [guestView, setGuestView] = useState<GuestView>('type')
+  const [guestView, setGuestView] = useState<GuestView>('event')
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
   const [isAlcoholicChoice, setIsAlcoholicChoice] = useState<boolean | null>(
     null,
   )
@@ -52,9 +54,13 @@ export default function HomePage() {
   const [selectedMixerId, setSelectedMixerId] = useState<string | null>(null)
 
   // Admin UI state
-  const [adminTab, setAdminTab] = useState<'categories' | 'mixers' | 'drinks'>(
-    'categories',
-  )
+  const [adminTab, setAdminTab] = useState<
+    'categories' | 'mixers' | 'drinks' | 'events' | 'portal'
+  >('categories')
+
+  // Events form
+  const [newEventName, setNewEventName] = useState('')
+  const [portalEventId, setPortalEventId] = useState<string | null>(null)
 
   // Category form
   const [newCategoryName, setNewCategoryName] = useState('')
@@ -113,16 +119,23 @@ export default function HomePage() {
   function handleClearAllData() {
     if (!config) return
     const proceed = window.confirm(
-      'Clear ALL categories, mixers, and drinks? This cannot be undone.',
+      'Clear ALL categories, mixers, drinks, events and bookings? This cannot be undone.',
     )
     if (!proceed) return
-    const nextConfig: Config = { categories: [], mixers: [], drinks: [] }
+    const nextConfig: Config = {
+      categories: [],
+      mixers: [],
+      drinks: [],
+      events: [],
+      bookings: [],
+    }
     resetDrinkForm()
     void saveConfigToServer(nextConfig)
   }
 
   function resetGuestFlow() {
-    setGuestView('type')
+    setGuestView('event')
+    setSelectedEventId(null)
     setIsAlcoholicChoice(null)
     setSelectedCategoryId(null)
     setSelectedDrinkId(null)
@@ -165,6 +178,16 @@ export default function HomePage() {
   const categories = config?.categories ?? []
   const mixers = config?.mixers ?? []
   const drinks = config?.drinks ?? []
+  const events = config?.events ?? []
+  const bookings = config?.bookings ?? []
+
+  const selectedEvent: Event | undefined = events.find(
+    (e) => e.id === selectedEventId,
+  )
+
+  const drinksForEvent: Drink[] = selectedEvent
+    ? drinks.filter((d) => selectedEvent.drinkIds.includes(d.id))
+    : []
 
   const selectedDrink: Drink | undefined = drinks.find(
     (d) => d.id === selectedDrinkId,
@@ -182,6 +205,8 @@ export default function HomePage() {
 
   function handleGuestBack() {
     switch (guestView) {
+      case 'event':
+        break
       case 'alcoholic-category':
       case 'nonalcoholic-drink':
         setGuestView('type')
@@ -221,6 +246,41 @@ export default function HomePage() {
       return selectedMixer.name
     }
     return ''
+  }
+
+  async function handleConfirmBooking(guestName?: string) {
+    if (!config) return
+    if (!selectedEventId) {
+      alert('Please select an event first.')
+      return
+    }
+    const text = summaryText()
+    if (!text) {
+      alert('Please complete your selection first.')
+      return
+    }
+
+    const booking: Booking = {
+      id:
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+          ? crypto.randomUUID()
+          : `booking-${Date.now()}`,
+      eventId: selectedEventId,
+      createdAt: new Date().toISOString(),
+      guestName: guestName?.trim() || undefined,
+      isAlcoholicChoice: Boolean(isAlcoholicChoice),
+      drinkId: isAlcoholicChoice ? selectedDrinkId ?? undefined : undefined,
+      mixerId: selectedMixerId ?? undefined,
+      summaryText: text,
+    }
+
+    const nextConfig: Config = {
+      ...config,
+      bookings: [...(config.bookings ?? []), booking],
+    }
+
+    await saveConfigToServer(nextConfig)
+    resetGuestFlow()
   }
 
   // ---------- Admin: Categories ----------
@@ -538,6 +598,9 @@ export default function HomePage() {
           <GuestWizard
             guestView={guestView}
             setGuestView={setGuestView}
+            selectedEventId={selectedEventId}
+            setSelectedEventId={setSelectedEventId}
+            events={events}
             isAlcoholicChoice={isAlcoholicChoice}
             setIsAlcoholicChoice={setIsAlcoholicChoice}
             selectedCategoryId={selectedCategoryId}
@@ -547,13 +610,15 @@ export default function HomePage() {
             selectedMixerId={selectedMixerId}
             setSelectedMixerId={setSelectedMixerId}
             categories={categories}
-            drinks={drinks}
+            drinks={drinksForEvent}
             mixers={mixers}
             alcoholicMixersForDrink={alcoholicMixersForDrink}
             nonAlcoholicOptions={nonAlcoholicOptions}
             onBack={handleGuestBack}
             onStartAgain={resetGuestFlow}
             summaryText={summaryText()}
+            selectedEventName={selectedEvent?.name ?? null}
+            onConfirmBooking={handleConfirmBooking}
             CardButton={CardButton}
           />
         ) : (
@@ -566,6 +631,11 @@ export default function HomePage() {
             setAdminTab={setAdminTab}
             config={config}
             handleClearAllData={handleClearAllData}
+            // events
+            newEventName={newEventName}
+            setNewEventName={setNewEventName}
+            portalEventId={portalEventId}
+            setPortalEventId={setPortalEventId}
             // categories
             newCategoryName={newCategoryName}
             setNewCategoryName={setNewCategoryName}
@@ -607,6 +677,9 @@ export default function HomePage() {
 type GuestWizardProps = {
   guestView: GuestView
   setGuestView: (v: GuestView) => void
+  selectedEventId: string | null
+  setSelectedEventId: (id: string | null) => void
+  events: Event[]
   isAlcoholicChoice: boolean | null
   setIsAlcoholicChoice: (v: boolean | null) => void
   selectedCategoryId: string | null
@@ -623,6 +696,8 @@ type GuestWizardProps = {
   onBack: () => void
   onStartAgain: () => void
   summaryText: string
+  selectedEventName: string | null
+  onConfirmBooking: (guestName?: string) => Promise<void> | void
   CardButton: (props: {
     selected?: boolean
     children: React.ReactNode
@@ -634,6 +709,9 @@ function GuestWizard(props: GuestWizardProps) {
   const {
     guestView,
     setGuestView,
+    selectedEventId,
+    setSelectedEventId,
+    events,
     isAlcoholicChoice,
     setIsAlcoholicChoice,
     selectedCategoryId,
@@ -649,6 +727,8 @@ function GuestWizard(props: GuestWizardProps) {
     onBack,
     onStartAgain,
     summaryText,
+    selectedEventName,
+    onConfirmBooking,
     CardButton,
   } = props
 
@@ -665,6 +745,20 @@ function GuestWizard(props: GuestWizardProps) {
     <section>
       {/* Header text per step */}
       <div className="mb-5">
+        {guestView === 'event' && (
+          <>
+            <p className="text-xs font-medium uppercase tracking-wide text-emerald-400">
+              Start
+            </p>
+            <h2 className="mt-1 text-xl font-semibold text-slate-50">
+              Choose your event
+            </h2>
+            <p className="mt-1 text-sm text-slate-400">
+              Select the event you’re attending.
+            </p>
+          </>
+        )}
+
         {guestView === 'type' && (
           <>
             <p className="text-xs font-medium uppercase tracking-wide text-emerald-400">
@@ -760,8 +854,43 @@ function GuestWizard(props: GuestWizardProps) {
       </div>
 
       {/* Main content */}
+      {guestView === 'event' && (
+        <>
+          <div className="mb-4 text-xs text-slate-400">
+            Tap an event to continue.
+          </div>
+          <div className="space-y-3">
+            {events.map((ev) => (
+              <CardButton
+                key={ev.id}
+                selected={selectedEventId === ev.id}
+                onClick={() => {
+                  setSelectedEventId(ev.id)
+                  setGuestView('type')
+                }}
+              >
+                <p className="text-sm font-medium text-slate-50">{ev.name}</p>
+                <p className="mt-1 text-xs text-slate-400">
+                  {ev.drinkIds.length} drink option(s)
+                </p>
+              </CardButton>
+            ))}
+            {!events.length && (
+              <div className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-3 text-sm text-slate-200">
+                No events yet. Ask the organiser to set one up in Admin.
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
       {guestView === 'type' && (
         <div className="space-y-4">
+          {selectedEventName && (
+            <div className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200">
+              Event: <span className="font-medium">{selectedEventName}</span>
+            </div>
+          )}
           <CardButton
             selected={isAlcoholicChoice === true}
             onClick={() => {
@@ -942,6 +1071,13 @@ function GuestWizard(props: GuestWizardProps) {
             </button>
             <button
               type="button"
+              onClick={() => onConfirmBooking()}
+              className="flex-1 rounded-full bg-sky-400 px-4 py-3 text-center text-sm font-semibold text-slate-900 shadow-lg hover:bg-sky-300"
+            >
+              Confirm booking
+            </button>
+            <button
+              type="button"
               onClick={onStartAgain}
               className="flex-1 rounded-full bg-emerald-400 px-4 py-3 text-center text-sm font-semibold text-slate-900 shadow-lg hover:bg-emerald-300"
             >
@@ -981,10 +1117,15 @@ type AdminAreaProps = {
   pinInput: string
   setPinInput: (v: string) => void
   handleAdminPinSubmit: (e: React.FormEvent) => void
-  adminTab: 'categories' | 'mixers' | 'drinks'
-  setAdminTab: (t: 'categories' | 'mixers' | 'drinks') => void
+  adminTab: 'categories' | 'mixers' | 'drinks' | 'events' | 'portal'
+  setAdminTab: (t: 'categories' | 'mixers' | 'drinks' | 'events' | 'portal') => void
   config: Config
   handleClearAllData: () => void
+  // events
+  newEventName: string
+  setNewEventName: (v: string) => void
+  portalEventId: string | null
+  setPortalEventId: (v: string | null) => void
   // categories
   newCategoryName: string
   setNewCategoryName: (v: string) => void
@@ -1030,6 +1171,10 @@ function AdminArea(props: AdminAreaProps) {
     setAdminTab,
     config,
     handleClearAllData,
+    newEventName,
+    setNewEventName,
+    portalEventId,
+    setPortalEventId,
     newCategoryName,
     setNewCategoryName,
     handleAddCategory,
@@ -1061,6 +1206,80 @@ function AdminArea(props: AdminAreaProps) {
   const categories = config.categories
   const mixers = config.mixers
   const drinks = config.drinks
+  const events = config.events ?? []
+  const bookings = config.bookings ?? []
+
+  function handleAddEvent(e: React.FormEvent) {
+    e.preventDefault()
+    const name = newEventName.trim()
+    if (!name) return
+    const id = slugify(
+      name,
+      events.map((ev) => ev.id),
+    )
+    const nextConfig: Config = {
+      ...config,
+      events: [...events, { id, name, drinkIds: [] }],
+    }
+    setNewEventName('')
+    setPortalEventId(id)
+    void fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(nextConfig),
+    })
+  }
+
+  function handleDeleteEvent(ev: Event) {
+    const proceed = window.confirm(
+      `Delete event "${ev.name}"? This will also delete its bookings.`,
+    )
+    if (!proceed) return
+    const nextConfig: Config = {
+      ...config,
+      events: events.filter((e) => e.id !== ev.id),
+      bookings: bookings.filter((b) => b.eventId !== ev.id),
+    }
+    if (portalEventId === ev.id) setPortalEventId(null)
+    void fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(nextConfig),
+    })
+  }
+
+  function handleToggleEventDrinkId(eventId: string, drinkId: string) {
+    const nextConfig: Config = {
+      ...config,
+      events: events.map((ev) => {
+        if (ev.id !== eventId) return ev
+        const has = ev.drinkIds.includes(drinkId)
+        return {
+          ...ev,
+          drinkIds: has
+            ? ev.drinkIds.filter((id) => id !== drinkId)
+            : [...ev.drinkIds, drinkId],
+        }
+      }),
+    }
+    void fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(nextConfig),
+    })
+  }
+
+  function handleDeleteBooking(booking: Booking) {
+    const nextConfig: Config = {
+      ...config,
+      bookings: bookings.filter((b) => b.id !== booking.id),
+    }
+    void fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(nextConfig),
+    })
+  }
 
   if (!isAdminAuthed) {
     return (
@@ -1153,7 +1372,197 @@ function AdminArea(props: AdminAreaProps) {
         >
           Drinks
         </button>
+        <button
+          type="button"
+          onClick={() => setAdminTab('events')}
+          className={`rounded-full px-3 py-1 ${
+            adminTab === 'events'
+              ? 'bg-slate-50 text-slate-900 shadow-sm'
+              : 'text-slate-300'
+          }`}
+        >
+          Events
+        </button>
+        <button
+          type="button"
+          onClick={() => setAdminTab('portal')}
+          className={`rounded-full px-3 py-1 ${
+            adminTab === 'portal'
+              ? 'bg-slate-50 text-slate-900 shadow-sm'
+              : 'text-slate-300'
+          }`}
+        >
+          Portal
+        </button>
       </div>
+
+      {adminTab === 'events' && (
+        <div className="space-y-5">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-100">
+              Existing events
+            </h3>
+            <p className="mb-2 text-xs text-slate-500">
+              Events control which drinks are available to guests.
+            </p>
+
+            <div className="space-y-2">
+              {events.map((ev) => (
+                <div
+                  key={ev.id}
+                  className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-3"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-medium text-slate-50">{ev.name}</p>
+                      <p className="text-[0.7rem] text-slate-400">
+                        {ev.drinkIds.length} drink option(s)
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPortalEventId(ev.id)
+                          setAdminTab('portal')
+                        }}
+                        className="text-xs text-sky-300 hover:text-sky-200"
+                      >
+                        View portal
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteEvent(ev)}
+                        className="text-xs text-red-300 hover:text-red-200"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-3">
+                    <p className="mb-2 text-xs font-medium text-slate-300">
+                      Drinks for this event
+                    </p>
+                    <div className="grid max-h-40 grid-cols-2 gap-2 overflow-y-auto rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2">
+                      {drinks.map((drink) => (
+                        <label
+                          key={drink.id}
+                          className="flex items-center gap-2 text-[0.75rem] text-slate-200"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={ev.drinkIds.includes(drink.id)}
+                            onChange={() =>
+                              handleToggleEventDrinkId(ev.id, drink.id)
+                            }
+                            className="h-3 w-3 rounded border-slate-600 bg-slate-900 text-emerald-400"
+                          />
+                          <span>{drink.name}</span>
+                        </label>
+                      ))}
+                      {!drinks.length && (
+                        <p className="col-span-2 text-xs text-slate-500">
+                          Add drinks first, then assign them to events.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {!events.length && (
+                <p className="text-xs text-slate-500">
+                  No events yet. Add one below.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <form onSubmit={handleAddEvent} className="space-y-3">
+            <h3 className="text-sm font-semibold text-slate-100">Add event</h3>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-300">
+                Event name
+              </label>
+              <input
+                type="text"
+                value={newEventName}
+                onChange={(e) => setNewEventName(e.target.value)}
+                placeholder="e.g. NYE Party 2025"
+                className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-50 outline-none focus:border-emerald-400"
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full rounded-full bg-emerald-400 px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-emerald-300"
+            >
+              Add event
+            </button>
+          </form>
+        </div>
+      )}
+
+      {adminTab === 'portal' && (
+        <div className="space-y-5">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-100">Event portal</h3>
+            <p className="mb-2 text-xs text-slate-500">
+              View bookings submitted by guests.
+            </p>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-300">
+                Event
+              </label>
+              <select
+                value={portalEventId ?? ''}
+                onChange={(e) => setPortalEventId(e.target.value || null)}
+                className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-50 outline-none focus:border-emerald-400"
+              >
+                <option value="">Select an event</option>
+                {events.map((ev) => (
+                  <option key={ev.id} value={ev.id}>
+                    {ev.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {portalEventId && (
+            <div className="space-y-2">
+              {bookings
+                .filter((b) => b.eventId === portalEventId)
+                .slice()
+                .reverse()
+                .map((b) => (
+                  <div
+                    key={b.id}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+                  >
+                    <div>
+                      <p className="text-slate-50">{b.summaryText}</p>
+                      <p className="text-[0.7rem] text-slate-400">
+                        {new Date(b.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteBooking(b)}
+                      className="text-xs text-red-300 hover:text-red-200"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))}
+
+              {!bookings.filter((b) => b.eventId === portalEventId).length && (
+                <p className="text-xs text-slate-500">No bookings yet.</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {adminTab === 'categories' && (
         <div className="space-y-5">

@@ -27,7 +27,13 @@ export async function POST(req: Request) {
       )
     }
 
-    await saveConfig(body)
+    const normalized: Config = {
+      ...body,
+      events: Array.isArray(body.events) ? body.events : [],
+      bookings: Array.isArray(body.bookings) ? body.bookings : [],
+    }
+
+    await saveConfig(normalized)
 
     return NextResponse.json({ ok: true })
   } catch (err) {

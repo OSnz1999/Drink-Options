@@ -11,6 +11,8 @@ const DEFAULT_CONFIG: Config = {
   categories: [],
   mixers: [],
   drinks: [],
+  events: [],
+  bookings: [],
 }
 
 function hasBlobToken(): boolean {
@@ -29,9 +31,19 @@ async function readLocalConfig(): Promise<Config | null> {
     ) {
       return null
     }
-    return parsed
+    return normalizeConfig(parsed)
   } catch {
     return null
+  }
+}
+
+function normalizeConfig(input: Config): Config {
+  return {
+    ...input,
+    events: Array.isArray((input as Config).events) ? (input as Config).events : [],
+    bookings: Array.isArray((input as Config).bookings)
+      ? (input as Config).bookings
+      : [],
   }
 }
 
@@ -66,7 +78,7 @@ export async function getConfig(): Promise<Config> {
     const res = await fetch(blob.url, { cache: 'no-store' })
     if (!res.ok) throw new Error('Failed to fetch config blob')
 
-    return (await res.json()) as Config
+    return normalizeConfig((await res.json()) as Config)
   } catch (err) {
     console.error('Error loading config, using defaults:', err)
     return DEFAULT_CONFIG

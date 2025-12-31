@@ -19,8 +19,27 @@ export type Drink = {
   mixerIds: string[]
 }
 
+export type Event = {
+  id: string
+  name: string
+  drinkIds: string[]
+}
+
+export type Booking = {
+  id: string
+  eventId: string
+  createdAt: string
+  guestName?: string
+  isAlcoholicChoice: boolean
+  drinkId?: string
+  mixerId?: string
+  summaryText: string
+}
+
 export type Config = {
   categories: Category[]
   mixers: Mixer[]
   drinks: Drink[]
+  events: Event[]
+  bookings: Booking[]
 }
