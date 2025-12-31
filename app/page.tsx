@@ -1,7 +1,7 @@
 // app/page.tsx
 'use client'
 
-import { useEffect, useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import type { Category, Mixer, Drink, Config, Event, Booking } from '@/lib/types'
 
 type Mode = 'guest' | 'admin'
