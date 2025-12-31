@@ -738,6 +738,8 @@ function GuestWizard(props: GuestWizardProps) {
     CardButton,
   } = props
 
+  const [guestName, setGuestName] = React.useState('')
+
   const selectedCategory = categories.find(
     (c) => c.id === selectedCategoryId,
   )
@@ -1067,6 +1069,19 @@ function GuestWizard(props: GuestWizardProps) {
             </p>
           </div>
 
+          <div className="space-y-3">
+            <label className="block text-xs font-medium text-slate-300">
+              Your name (optional)
+            </label>
+            <input
+              type="text"
+              value={guestName}
+              onChange={(e) => setGuestName(e.target.value)}
+              placeholder="Enter your name"
+              className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-50 placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
+            />
+          </div>
+
           <div className="flex flex-col gap-3 sm:flex-row">
             <button
               type="button"
@@ -1077,7 +1092,7 @@ function GuestWizard(props: GuestWizardProps) {
             </button>
             <button
               type="button"
-              onClick={() => onConfirmBooking()}
+              onClick={() => onConfirmBooking(guestName)}
               className="flex-1 rounded-full bg-sky-400 px-4 py-3 text-center text-sm font-semibold text-slate-900 shadow-lg hover:bg-sky-300"
             >
               Confirm booking
@@ -1320,11 +1335,6 @@ function AdminArea(props: AdminAreaProps) {
           >
             Unlock Admin
           </button>
-          <p className="text-[0.7rem] text-slate-500">
-            Default password is <span className="font-mono">1234abc</span>.
-            Change it in <code>app/page.tsx</code> by updating{' '}
-            <code>ADMIN_PIN</code>.
-          </p>
         </form>
       </section>
     )
