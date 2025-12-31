@@ -13,7 +13,7 @@ type GuestView =
   | 'nonalcoholic-drink'
   | 'summary'
 
-const ADMIN_PIN = '1234' // change this to your desired PIN
+const ADMIN_PIN = '1234abc' // change this to your desired PIN
 
 function slugify(base: string, existingIds: string[]): string {
   const baseSlug = base
@@ -108,6 +108,17 @@ export default function HomePage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  function handleClearAllData() {
+    if (!config) return
+    const proceed = window.confirm(
+      'Clear ALL categories, mixers, and drinks? This cannot be undone.',
+    )
+    if (!proceed) return
+    const nextConfig: Config = { categories: [], mixers: [], drinks: [] }
+    resetDrinkForm()
+    void saveConfigToServer(nextConfig)
   }
 
   function resetGuestFlow() {
@@ -554,6 +565,7 @@ export default function HomePage() {
             adminTab={adminTab}
             setAdminTab={setAdminTab}
             config={config}
+            handleClearAllData={handleClearAllData}
             // categories
             newCategoryName={newCategoryName}
             setNewCategoryName={setNewCategoryName}
@@ -972,6 +984,7 @@ type AdminAreaProps = {
   adminTab: 'categories' | 'mixers' | 'drinks'
   setAdminTab: (t: 'categories' | 'mixers' | 'drinks') => void
   config: Config
+  handleClearAllData: () => void
   // categories
   newCategoryName: string
   setNewCategoryName: (v: string) => void
@@ -1016,6 +1029,7 @@ function AdminArea(props: AdminAreaProps) {
     adminTab,
     setAdminTab,
     config,
+    handleClearAllData,
     newCategoryName,
     setNewCategoryName,
     handleAddCategory,
@@ -1076,8 +1090,8 @@ function AdminArea(props: AdminAreaProps) {
             Unlock Admin
           </button>
           <p className="text-[0.7rem] text-slate-500">
-            Default PIN is <span className="font-mono">1234</span>. Change it
-            in <code>app/page.tsx</code> by updating{' '}
+            Default password is <span className="font-mono">1234abc</span>.
+            Change it in <code>app/page.tsx</code> by updating{' '}
             <code>ADMIN_PIN</code>.
           </p>
         </form>
@@ -1090,6 +1104,19 @@ function AdminArea(props: AdminAreaProps) {
       <h2 className="mb-3 text-lg font-semibold text-slate-50">
         Admin settings
       </h2>
+
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <p className="text-xs text-slate-400">
+          Manage drinks and options.
+        </p>
+        <button
+          type="button"
+          onClick={handleClearAllData}
+          className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-200 hover:bg-red-500/15"
+        >
+          Clear all data
+        </button>
+      </div>
 
       {/* Tabs */}
       <div className="mb-4 inline-flex rounded-full bg-slate-800 p-1 text-xs">

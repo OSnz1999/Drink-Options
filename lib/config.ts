@@ -1,51 +1,54 @@
 // lib/config.ts
 import { list, put } from '@vercel/blob'
+ import { mkdir, readFile, writeFile } from 'node:fs/promises'
+ import path from 'node:path'
 import type { Config } from './types'
 
 const CONFIG_KEY = 'config/drinks-config.json'
+ const LOCAL_CONFIG_PATH = path.join(process.cwd(), '.data', 'drinks-config.json')
 
 const DEFAULT_CONFIG: Config = {
-  categories: [
-    { id: 'gin', name: 'Gin' },
-    { id: 'whisky', name: 'Whisky' },
-    { id: 'vodka', name: 'Vodka' },
-  ],
-  mixers: [
-    { id: 'cola', name: 'Cola', isNonAlcoholicOption: true },
-    { id: 'coke-zero', name: 'Coke Zero', isNonAlcoholicOption: true },
-    { id: 'lemonade', name: 'Lemonade', isNonAlcoholicOption: true },
-    { id: 'orange-juice', name: 'Orange Juice', isNonAlcoholicOption: true },
-    { id: 'soda', name: 'Soda', isNonAlcoholicOption: true },
-    { id: 'tonic', name: 'Tonic', isNonAlcoholicOption: false },
-    { id: 'neat', name: 'Neat / no mixer', isNonAlcoholicOption: false },
-  ],
-  drinks: [
-    {
-      id: 'jack-daniels',
-      name: "Jack Daniel's",
-      categoryId: 'whisky',
-      imageUrl: '',
-      mixerIds: ['cola', 'coke-zero', 'soda', 'neat'],
-    },
-    {
-      id: 'bombay-sapphire',
-      name: 'Bombay Sapphire',
-      categoryId: 'gin',
-      imageUrl: '',
-      mixerIds: ['tonic', 'soda', 'lemonade', 'neat'],
-    },
-    {
-      id: 'smirnoff',
-      name: 'Smirnoff',
-      categoryId: 'vodka',
-      imageUrl: '',
-      mixerIds: ['orange-juice', 'lemonade', 'soda', 'neat'],
-    },
-  ],
+  categories: [],
+  mixers: [],
+  drinks: [],
+}
+
+function hasBlobToken(): boolean {
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN)
+}
+
+async function readLocalConfig(): Promise<Config | null> {
+  try {
+    const raw = await readFile(LOCAL_CONFIG_PATH, 'utf8')
+    const parsed = JSON.parse(raw) as Config
+    if (
+      !parsed ||
+      !Array.isArray(parsed.categories) ||
+      !Array.isArray(parsed.mixers) ||
+      !Array.isArray(parsed.drinks)
+    ) {
+      return null
+    }
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+async function writeLocalConfig(config: Config): Promise<void> {
+  await mkdir(path.dirname(LOCAL_CONFIG_PATH), { recursive: true })
+  await writeFile(LOCAL_CONFIG_PATH, JSON.stringify(config, null, 2), 'utf8')
 }
 
 export async function getConfig(): Promise<Config> {
   try {
+    if (!hasBlobToken()) {
+      const local = await readLocalConfig()
+      if (local) return local
+      await writeLocalConfig(DEFAULT_CONFIG)
+      return DEFAULT_CONFIG
+    }
+
     const { blobs } = await list({ prefix: CONFIG_KEY })
 
     if (!blobs.length) {
@@ -71,6 +74,11 @@ export async function getConfig(): Promise<Config> {
 }
 
 export async function saveConfig(config: Config): Promise<void> {
+  if (!hasBlobToken()) {
+    await writeLocalConfig(config)
+    return
+  }
+
   await put(CONFIG_KEY, JSON.stringify(config, null, 2), {
     access: 'public',
     contentType: 'application/json',
