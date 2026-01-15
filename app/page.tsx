@@ -14,6 +14,7 @@ type GuestView =
   | 'strength-options'
   | 'nonalcoholic-drink'
   | 'summary'
+  | 'confirmation'
 
 const ADMIN_PIN = '1234abc' // change this to your desired PIN
 
@@ -57,6 +58,7 @@ export default function HomePage() {
   const [selectedGlassSize, setSelectedGlassSize] = useState<'short' | 'tall' | null>(null)
   const [selfieUrl, setSelfieUrl] = useState<string>('')
   const [notes, setNotes] = useState<string>('')
+  const [showConfirmation, setShowConfirmation] = useState<boolean>(false)
 
   // Admin UI state
   const [adminTab, setAdminTab] = useState<
@@ -149,6 +151,7 @@ export default function HomePage() {
     setSelectedGlassSize(null)
     setSelfieUrl('')
     setNotes('')
+    setShowConfirmation(false)
   }
 
   function gotoAdmin() {
@@ -312,7 +315,7 @@ export default function HomePage() {
     }
 
     await saveConfigToServer(nextConfig)
-    resetGuestFlow()
+    setShowConfirmation(true)
   }
 
   // ---------- Admin: Categories ----------
@@ -649,6 +652,8 @@ export default function HomePage() {
             setSelfieUrl={setSelfieUrl}
             notes={notes}
             setNotes={setNotes}
+            showConfirmation={showConfirmation}
+            setShowConfirmation={setShowConfirmation}
             categories={categories}
             drinks={drinksForEvent}
             mixers={mixers}
@@ -737,6 +742,8 @@ type GuestWizardProps = {
   setSelfieUrl: (url: string) => void
   notes: string
   setNotes: (notes: string) => void
+  showConfirmation: boolean
+  setShowConfirmation: (show: boolean) => void
   categories: Category[]
   drinks: Drink[]
   mixers: Mixer[]
@@ -777,6 +784,8 @@ function GuestWizard(props: GuestWizardProps) {
     setSelfieUrl,
     notes,
     setNotes,
+    showConfirmation,
+    setShowConfirmation,
     categories,
     drinks,
     alcoholicMixersForDrink,
@@ -1262,9 +1271,9 @@ function GuestWizard(props: GuestWizardProps) {
             <button
               type="button"
               onClick={() => onConfirmBooking(guestName)}
-              className="flex-1 rounded-full bg-sky-400 px-4 py-3 text-center text-sm font-semibold text-slate-900 shadow-lg hover:bg-sky-300"
+              className="flex-1 rounded-full bg-emerald-400 px-4 py-3 text-center text-sm font-semibold text-slate-900 shadow-lg hover:bg-emerald-300"
             >
-              Confirm booking
+              Send My Drink Order
             </button>
             <button
               type="button"
