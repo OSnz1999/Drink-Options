@@ -14,7 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className="min-h-screen flex items-center justify-center">
+      <body className="min-h-screen bg-slate-950 text-slate-50 flex flex-col items-center overflow-y-auto">
         {children}
       </body>
     </html>
