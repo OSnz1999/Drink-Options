@@ -1207,6 +1207,7 @@ function GuestWizard(props: GuestWizardProps) {
             <input
               type="file"
               accept="image/*"
+              capture="user"
               onChange={async (e) => {
                 const file = e.target.files?.[0]
                 if (file) {
