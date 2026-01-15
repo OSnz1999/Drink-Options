@@ -58,7 +58,6 @@ export default function HomePage() {
   const [selectedGlassSize, setSelectedGlassSize] = useState<'short' | 'tall' | null>(null)
   const [selfieUrl, setSelfieUrl] = useState<string>('')
   const [notes, setNotes] = useState<string>('')
-  const [showConfirmation, setShowConfirmation] = useState<boolean>(false)
 
   // Admin UI state
   const [adminTab, setAdminTab] = useState<
@@ -151,7 +150,6 @@ export default function HomePage() {
     setSelectedGlassSize(null)
     setSelfieUrl('')
     setNotes('')
-    setShowConfirmation(false)
   }
 
   function gotoAdmin() {
@@ -315,7 +313,7 @@ export default function HomePage() {
     }
 
     await saveConfigToServer(nextConfig)
-    setShowConfirmation(true)
+    setGuestView('confirmation')
   }
 
   // ---------- Admin: Categories ----------
@@ -652,8 +650,6 @@ export default function HomePage() {
             setSelfieUrl={setSelfieUrl}
             notes={notes}
             setNotes={setNotes}
-            showConfirmation={showConfirmation}
-            setShowConfirmation={setShowConfirmation}
             categories={categories}
             drinks={drinksForEvent}
             mixers={mixers}
@@ -742,8 +738,6 @@ type GuestWizardProps = {
   setSelfieUrl: (url: string) => void
   notes: string
   setNotes: (notes: string) => void
-  showConfirmation: boolean
-  setShowConfirmation: (show: boolean) => void
   categories: Category[]
   drinks: Drink[]
   mixers: Mixer[]
@@ -784,8 +778,6 @@ function GuestWizard(props: GuestWizardProps) {
     setSelfieUrl,
     notes,
     setNotes,
-    showConfirmation,
-    setShowConfirmation,
     categories,
     drinks,
     alcoholicMixersForDrink,
@@ -931,6 +923,20 @@ function GuestWizard(props: GuestWizardProps) {
             <h2 className="mt-1 text-xl font-semibold text-slate-50">
               Show this at the bar
             </h2>
+          </>
+        )}
+
+        {guestView === 'confirmation' && (
+          <>
+            <p className="text-xs font-medium uppercase tracking-wide text-emerald-400">
+              Confirmed
+            </p>
+            <h2 className="mt-1 text-xl font-semibold text-slate-50">
+              Order received
+            </h2>
+            <p className="mt-1 text-sm text-slate-400">
+              Review your drink and edit if anything looks off.
+            </p>
           </>
         )}
       </div>
@@ -1286,8 +1292,71 @@ function GuestWizard(props: GuestWizardProps) {
         </div>
       )}
 
+      {guestView === 'confirmation' && (
+        <div className="mt-2 space-y-6">
+          <div className="rounded-2xl border border-emerald-500/60 bg-slate-950/60 px-4 py-5 text-center shadow-lg">
+            <p className="text-[0.7rem] uppercase tracking-wide text-emerald-300">
+              Your drink order
+            </p>
+            <p className="mt-2 text-2xl font-bold text-slate-50">
+              {summaryText}
+            </p>
+            {selectedDrink?.imageUrl && (
+              <div className="mt-4">
+                <img
+                  src={selectedDrink.imageUrl}
+                  alt={selectedDrink.name}
+                  className="h-48 w-full rounded-2xl object-cover"
+                />
+              </div>
+            )}
+            <div className="mt-4 space-y-1 text-xs text-slate-300">
+              {guestName && (
+                <p>
+                  <span className="text-slate-400">Name:</span> {guestName}
+                </p>
+              )}
+              {selectedStrength && (
+                <p>
+                  <span className="text-slate-400">Strength:</span>{' '}
+                  {selectedStrength}
+                </p>
+              )}
+              {selectedGlassSize && (
+                <p>
+                  <span className="text-slate-400">Glass size:</span>{' '}
+                  {selectedGlassSize}
+                </p>
+              )}
+            </div>
+            <p className="mt-4 text-xs text-slate-400">
+              Your order has been sent to the bar. Tap edit to make changes.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => setGuestView('summary')}
+              className="flex-1 rounded-full border border-slate-700 bg-slate-900 px-4 py-3 text-center text-sm font-medium text-slate-100 hover:border-slate-500 hover:bg-slate-800"
+            >
+              Edit order
+            </button>
+            <button
+              type="button"
+              onClick={onStartAgain}
+              className="flex-1 rounded-full bg-emerald-400 px-4 py-3 text-center text-sm font-semibold text-slate-900 shadow-lg hover:bg-emerald-300"
+            >
+              Start again
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Navigation buttons for intermediate steps */}
-      {guestView !== 'type' && guestView !== 'summary' && (
+      {guestView !== 'type' &&
+        guestView !== 'summary' &&
+        guestView !== 'confirmation' && (
         <div className="mt-6 flex justify-between gap-3">
           <button
             type="button"
