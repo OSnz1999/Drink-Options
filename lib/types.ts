@@ -35,6 +35,10 @@ export type Booking = {
   drinkId?: string
   mixerId?: string
   summaryText: string
+  strength?: 'light' | 'medium' | 'strong'
+  glassSize?: 'short' | 'tall'
+  selfieUrl?: string
+  notes?: string
 }
 
 export type Config = {

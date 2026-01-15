@@ -11,6 +11,7 @@ type GuestView =
   | 'alcoholic-category'
   | 'alcoholic-drink'
   | 'alcoholic-mixer'
+  | 'strength-options'
   | 'nonalcoholic-drink'
   | 'summary'
 
@@ -52,6 +53,10 @@ export default function HomePage() {
   )
   const [selectedDrinkId, setSelectedDrinkId] = useState<string | null>(null)
   const [selectedMixerId, setSelectedMixerId] = useState<string | null>(null)
+  const [selectedStrength, setSelectedStrength] = useState<'light' | 'medium' | 'strong' | null>(null)
+  const [selectedGlassSize, setSelectedGlassSize] = useState<'short' | 'tall' | null>(null)
+  const [selfieUrl, setSelfieUrl] = useState<string>('')
+  const [notes, setNotes] = useState<string>('')
 
   // Admin UI state
   const [adminTab, setAdminTab] = useState<
@@ -140,6 +145,10 @@ export default function HomePage() {
     setSelectedCategoryId(null)
     setSelectedDrinkId(null)
     setSelectedMixerId(null)
+    setSelectedStrength(null)
+    setSelectedGlassSize(null)
+    setSelfieUrl('')
+    setNotes('')
   }
 
   function gotoAdmin() {
@@ -226,9 +235,16 @@ export default function HomePage() {
         setGuestView('alcoholic-drink')
         setSelectedMixerId(null)
         break
+      case 'strength-options':
+        setGuestView('alcoholic-mixer')
+        setSelectedStrength(null)
+        setSelectedGlassSize(null)
+        break
       case 'summary':
         if (isAlcoholicChoice) {
-          if (!selectedMixerId) {
+          if (selectedDrinkId && selectedMixerId) {
+            setGuestView('strength-options')
+          } else if (!selectedMixerId) {
             setGuestView('alcoholic-mixer')
           } else {
             setGuestView('alcoholic-mixer')
@@ -259,6 +275,13 @@ export default function HomePage() {
       alert('Please select an event first.')
       return
     }
+    
+    // Make guest name compulsory
+    if (!guestName || !guestName.trim()) {
+      alert('Please enter your name to confirm the booking.')
+      return
+    }
+    
     const text = summaryText()
     if (!text) {
       alert('Please complete your selection first.')
@@ -272,11 +295,15 @@ export default function HomePage() {
           : `booking-${Date.now()}`,
       eventId: selectedEventId,
       createdAt: new Date().toISOString(),
-      guestName: guestName?.trim() || undefined,
+      guestName: guestName.trim(),
       isAlcoholicChoice: Boolean(isAlcoholicChoice),
       drinkId: isAlcoholicChoice ? selectedDrinkId ?? undefined : undefined,
       mixerId: selectedMixerId ?? undefined,
       summaryText: text,
+      strength: selectedStrength ?? undefined,
+      glassSize: selectedGlassSize ?? undefined,
+      selfieUrl: selfieUrl || undefined,
+      notes: notes || undefined,
     }
 
     const nextConfig: Config = {
@@ -614,6 +641,14 @@ export default function HomePage() {
             setSelectedDrinkId={setSelectedDrinkId}
             selectedMixerId={selectedMixerId}
             setSelectedMixerId={setSelectedMixerId}
+            selectedStrength={selectedStrength}
+            setSelectedStrength={setSelectedStrength}
+            selectedGlassSize={selectedGlassSize}
+            setSelectedGlassSize={setSelectedGlassSize}
+            selfieUrl={selfieUrl}
+            setSelfieUrl={setSelfieUrl}
+            notes={notes}
+            setNotes={setNotes}
             categories={categories}
             drinks={drinksForEvent}
             mixers={mixers}
@@ -694,6 +729,14 @@ type GuestWizardProps = {
   setSelectedDrinkId: (id: string | null) => void
   selectedMixerId: string | null
   setSelectedMixerId: (id: string | null) => void
+  selectedStrength: 'light' | 'medium' | 'strong' | null
+  setSelectedStrength: (strength: 'light' | 'medium' | 'strong' | null) => void
+  selectedGlassSize: 'short' | 'tall' | null
+  setSelectedGlassSize: (size: 'short' | 'tall' | null) => void
+  selfieUrl: string
+  setSelfieUrl: (url: string) => void
+  notes: string
+  setNotes: (notes: string) => void
   categories: Category[]
   drinks: Drink[]
   mixers: Mixer[]
@@ -726,6 +769,14 @@ function GuestWizard(props: GuestWizardProps) {
     setSelectedDrinkId,
     selectedMixerId,
     setSelectedMixerId,
+    selectedStrength,
+    setSelectedStrength,
+    selectedGlassSize,
+    setSelectedGlassSize,
+    selfieUrl,
+    setSelfieUrl,
+    notes,
+    setNotes,
     categories,
     drinks,
     alcoholicMixersForDrink,
@@ -845,6 +896,20 @@ function GuestWizard(props: GuestWizardProps) {
             </h2>
             <p className="mt-1 text-sm text-slate-400">
               Soft drinks, juices and other options.
+            </p>
+          </>
+        )}
+
+        {guestView === 'strength-options' && (
+          <>
+            <p className="text-xs font-medium uppercase tracking-wide text-emerald-400">
+              Step 5
+            </p>
+            <h2 className="mt-1 text-xl font-semibold text-slate-50">
+              Choose strength and glass size
+            </h2>
+            <p className="mt-1 text-sm text-slate-400">
+              Customize your drink strength and glass preference.
             </p>
           </>
         )}
@@ -1010,7 +1075,7 @@ function GuestWizard(props: GuestWizardProps) {
       {guestView === 'alcoholic-mixer' && (
         <>
           <div className="mb-4 text-xs text-slate-400">
-            Tap a mixer to see your final order.
+            Tap a mixer to select strength and glass size.
           </div>
           <div className="grid grid-cols-2 gap-3">
             {alcoholicMixersForDrink.map((mixer) => (
@@ -1019,7 +1084,7 @@ function GuestWizard(props: GuestWizardProps) {
                 selected={selectedMixerId === mixer.id}
                 onClick={() => {
                   setSelectedMixerId(mixer.id)
-                  setGuestView('summary')
+                  setGuestView('strength-options')
                 }}
               >
                 <p className="text-sm font-medium text-slate-50">
@@ -1055,6 +1120,58 @@ function GuestWizard(props: GuestWizardProps) {
         </>
       )}
 
+      {guestView === 'strength-options' && (
+        <div className="space-y-6">
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-slate-300">
+              How strong would you like it?
+            </h3>
+            <div className="grid grid-cols-3 gap-3">
+              {(['light', 'medium', 'strong'] as const).map((strength) => (
+                <CardButton
+                  key={strength}
+                  selected={selectedStrength === strength}
+                  onClick={() => setSelectedStrength(strength)}
+                >
+                  <p className="text-sm font-medium text-slate-50 capitalize">
+                    {strength}
+                  </p>
+                </CardButton>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-slate-300">
+              Glass size?
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              {(['short', 'tall'] as const).map((size) => (
+                <CardButton
+                  key={size}
+                  selected={selectedGlassSize === size}
+                  onClick={() => setSelectedGlassSize(size)}
+                >
+                  <p className="text-sm font-medium text-slate-50 capitalize">
+                    {size}
+                  </p>
+                </CardButton>
+              ))}
+            </div>
+          </div>
+
+          {selectedStrength && selectedGlassSize && (
+            <button
+              type="button"
+              onClick={() => setGuestView('summary')}
+              className="w-full rounded-full bg-emerald-400 px-4 py-3 text-center text-sm font-semibold text-slate-900 shadow-lg hover:bg-emerald-300"
+            >
+              Continue to summary
+            </button>
+          )}
+        </div>
+      )}
+
       {guestView === 'summary' && (
         <div className="mt-2 space-y-6">
           <div className="rounded-2xl border border-emerald-500/60 bg-slate-950/60 px-4 py-5 text-center shadow-lg">
@@ -1071,14 +1188,65 @@ function GuestWizard(props: GuestWizardProps) {
 
           <div className="space-y-3">
             <label className="block text-xs font-medium text-slate-300">
-              Your name (optional)
+              Your name *
             </label>
             <input
               type="text"
               value={guestName}
               onChange={(e) => setGuestName(e.target.value)}
-              placeholder="Enter your name"
+              placeholder="Enter your name (required)"
               className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-50 placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
+              required
+            />
+          </div>
+
+          <div className="space-y-3">
+            <label className="block text-xs font-medium text-slate-300">
+              Selfie (optional)
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={async (e) => {
+                const file = e.target.files?.[0]
+                if (file) {
+                  const formData = new FormData()
+                  formData.append('file', file)
+                  try {
+                    const res = await fetch('/api/upload', {
+                      method: 'POST',
+                      body: formData,
+                    })
+                    if (res.ok) {
+                      const data = await res.json()
+                      setSelfieUrl(data.url)
+                    }
+                  } catch (err) {
+                    console.error('Upload failed:', err)
+                  }
+                }
+              }}
+              className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-50 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-400 file:px-3 file:py-1 file:text-sm file:font-semibold file:text-slate-900 hover:file:bg-emerald-300"
+            />
+            {selfieUrl && (
+              <img
+                src={selfieUrl}
+                alt="Selfie preview"
+                className="h-20 w-20 rounded-xl object-cover"
+              />
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <label className="block text-xs font-medium text-slate-300">
+              Notes (optional)
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Any special requests or notes..."
+              rows={3}
+              className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-50 placeholder-slate-500 focus:border-emerald-500 focus:outline-none resize-none"
             />
           </div>
 
@@ -1607,21 +1775,57 @@ function AdminArea(props: AdminAreaProps) {
                 .map((b) => (
                   <div
                     key={b.id}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+                    className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-3 text-sm"
                   >
-                    <div>
-                      <p className="text-slate-50">{b.summaryText}</p>
-                      <p className="text-[0.7rem] text-slate-400">
-                        {new Date(b.createdAt).toLocaleString()}
-                      </p>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="mb-2 flex items-center gap-2">
+                          <span className="font-medium text-slate-50">
+                            {b.guestName || 'Anonymous'}
+                          </span>
+                          <span className="text-[0.6rem] text-slate-500">
+                            {new Date(b.createdAt).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="text-slate-50 mb-1">{b.summaryText}</p>
+                        
+                        <div className="flex flex-wrap gap-2 text-[0.65rem]">
+                          {b.strength && (
+                            <span className="inline-flex items-center rounded-full bg-blue-500/20 px-2 py-1 text-blue-200">
+                              {b.strength}
+                            </span>
+                          )}
+                          {b.glassSize && (
+                            <span className="inline-flex items-center rounded-full bg-green-500/20 px-2 py-1 text-green-200">
+                              {b.glassSize}
+                            </span>
+                          )}
+                        </div>
+                        
+                        {b.notes && (
+                          <p className="mt-2 text-[0.7rem] text-slate-400 italic">
+                            Notes: {b.notes}
+                          </p>
+                        )}
+                        
+                        {b.selfieUrl && (
+                          <div className="mt-2">
+                            <img
+                              src={b.selfieUrl}
+                              alt="Selfie"
+                              className="h-12 w-12 rounded-lg object-cover"
+                            />
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteBooking(b)}
+                        className="text-xs text-red-300 hover:text-red-200 flex-shrink-0"
+                      >
+                        Delete
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteBooking(b)}
-                      className="text-xs text-red-300 hover:text-red-200"
-                    >
-                      Delete
-                    </button>
                   </div>
                 ))}
 
